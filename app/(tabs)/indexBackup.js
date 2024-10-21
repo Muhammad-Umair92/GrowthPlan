@@ -8,7 +8,6 @@ import ProductCard from '../../components/ProductCard';
 export default function App() {
   const [items, setItems] = useState([]);
   const [myCartItems, setMyCartItems] = useState([]);
-  const [total, setTotal] = useState(0);
   const [count, setCount] = useState(0);
   const [price, setPrice] = useState(0);
   const [name, setName] = useState(0);
@@ -61,6 +60,25 @@ export default function App() {
   ]
 
 
+  const validate = () => {
+    if (!price || !description || !name) {
+      return false
+    }
+    else {
+      return true
+    }
+  }
+
+  const addItem = () => {
+    if (!validate()) {
+      alert('All fields are required')
+      return
+    }
+    setCount(prev => prev + 1);
+    const newItem = new Item(count, name, price, description, true); // Set isNew to true
+    setItems([...items, newItem]);
+  };
+
   const removeItem = (id) => {
     setItems(items.filter(item => item.id !== id));
   };
@@ -70,7 +88,7 @@ export default function App() {
     const [selectedId, setSelectedId] = useState(null);
 
     const handleItemPress = (id) => {
-      // console.log(id, '$$$$$$$$$')
+      console.log(id, '$$$$$$$$$')
       setSelectedId(id);
     };
 
@@ -97,30 +115,17 @@ export default function App() {
   };
 
   const addToCart = (item) => {
-    const filterArr = myCartItems.filter(cartItem => cartItem.id == item.id)
-    if (filterArr.length < 1) {
+    // console.log(item)
+    setMyCartItems([...myCartItems, item]);
+    setTimeout(() => {
+      console.log(myCartItems)
+    }, 1000)
 
-      setTotal(total + item.productPrice)
-      setMyCartItems([...myCartItems, item]);
-    }
-  }
-
-
-
-  const removeFromCart = (id) => {
-    setMyCartItems(myCartItems.filter(item => {
-      if (item.id !== id) {
-        return true
-      }
-      else {
-        setTotal(total - item.productPrice)
-        return false
-      }
-    }));
   }
 
   // Individual Animated Item Component
   const AnimatedItem = ({ item, onPress, removeItem, selectedId }) => {
+    // console.log(item, '****')
     const opacity = useRef(new Animated.Value(0)).current; // Initial opacity is 0
 
     useEffect(() => {
@@ -138,12 +143,21 @@ export default function App() {
     }, []);
 
     return (
-      <View>
+      <Swipeable
+        renderRightActions={() => (
+          <TouchableOpacity onPress={() => removeItem(item.id)}>
+            <View style={styles.deleteBox}>
+              <Text style={styles.deleteText}>Delete</Text>
+            </View>
+          </TouchableOpacity>
+        )}
+      >
         {item.isNew ? (
           // Only wrap the new item in an Animated.View
           <Animated.View style={{ opacity }}>
             <TouchableOpacity
               onPress={() => onPress(item.id)}
+              onLongPress={() => removeItem(item.id)}
               style={[
                 styles.item,
                 { backgroundColor: selectedId === item.id ? 'lightblue' : 'white' }
@@ -155,16 +169,16 @@ export default function App() {
                 productPrice={item.productPrice}
                 productImage={item.productImage}
                 addToCart={(item) => addToCart(item)}
-                removeFromCart={(id) => removeFromCart(id)}
                 item={item}
               />
             </TouchableOpacity>
           </Animated.View>
         ) : (
           // For existing items, use a regular View
-          <View>
+          <View style={{ backgroundColor: 'pink' }}>
             <TouchableOpacity
               onPress={() => onPress(item.id)}
+              onLongPress={() => removeItem(item.id)}
               style={[
                 styles.item,
                 { backgroundColor: selectedId === item.id ? 'lightblue' : 'white' }
@@ -176,52 +190,28 @@ export default function App() {
                 productPrice={item.productPrice}
                 productImage={item.productImage}
                 addToCart={(item) => addToCart(item)}
-                removeFromCart={(id) => removeFromCart(id)}
                 item={item}
 
               />
             </TouchableOpacity>
           </View>
         )}
-      </View>
+      </Swipeable>
     );
   };
 
   const renderItem = ({ item }) => {
     return (
-      <View style={{ padding: 10 }}>
-        <ProductCard
-          productName={item.productName}
-          productDescription={item.productDescription}
-          productPrice={item.productPrice}
-          productImage={item.productImage}
-          // addToCart={(item) => addToCart(item)}
-          // removeFromCart={(id) => removeFromCart(id)}
-          item={item}
-        />
-      </View>
+      <ProductCard
+        productName={item.productName}
+        productDescription={item.productDescription}
+        productPrice={item.productPrice}
+        productImage={item.productImage}
+        // addToCart={(item) => addToCart(item)}
+        item={item}
+      />
     );
   };
-
-
-  function CartComponent() {
-    return (
-      <>
-        <Header title="My Cart" />
-        <GestureHandlerRootView style={{ flex: 1 }}>
-          <View style={{ justifyContent: 'space-between', flexDirection: 'row' }}>
-            <Text>Total Amount: </Text>
-            <Text> {total} </Text>
-          </View>
-          <FlatList
-            data={myCartItems || []}
-            renderItem={renderItem}
-            keyExtractor={item => item.id.toString()}
-          />
-        </GestureHandlerRootView>
-      </>
-    )
-  }
 
 
   return (
@@ -229,7 +219,14 @@ export default function App() {
       <View style={styles.container}>
         <Header title="List Of Products" />
         <ItemList items={listOFProducts} removeItem={removeItem} />
-        <CartComponent />
+        <Header title="My Cart" />
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <FlatList
+            data={myCartItems || []}
+            renderItem={renderItem}
+            keyExtractor={item => item.id.toString()}
+          />
+        </GestureHandlerRootView>
       </View>
     </SafeAreaView>
   );
